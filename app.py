@@ -3,17 +3,35 @@ from google.cloud import vision
 from google.cloud import translate_v2 as translate
 from google.oauth2 import service_account
 import re
+import os
+import json
 
 app = Flask(__name__)
 
-SERVICE_ACCOUNT_FILE = "sublime-lens-479204-m6-03eb13e666f6.json"
+# Get credentials from environment variable or file
+# For production (GCP): Use GOOGLE_APPLICATION_CREDENTIALS_JSON env var
+# For local development: Use the JSON file
+credentials = None
+if os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON'):
+    # Load credentials from environment variable (for GCP deployment)
+    credentials_dict = json.loads(os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON'))
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+elif os.path.exists("sublime-lens-479204-m6-03eb13e666f6.json"):
+    # Load from file for local development
+    credentials = service_account.Credentials.from_service_account_file(
+        "sublime-lens-479204-m6-03eb13e666f6.json"
+    )
+else:
+    # Use default GCP credentials (Workload Identity)
+    credentials = None
 
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE
-)
-
-vision_client = vision.ImageAnnotatorClient(credentials=credentials)
-translate_client = translate.Client(credentials=credentials)
+if credentials:
+    vision_client = vision.ImageAnnotatorClient(credentials=credentials)
+    translate_client = translate.Client(credentials=credentials)
+else:
+    # Use default credentials when running on GCP with Workload Identity
+    vision_client = vision.ImageAnnotatorClient()
+    translate_client = translate.Client()
 
 
 def contains_sinhala(text):
@@ -65,4 +83,6 @@ def ocr_image():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Use PORT environment variable for GCP Cloud Run compatibility
+    port = int(os.getenv("PORT", 5000))
+    app.run(debug=True, host="0.0.0.0", port=port)

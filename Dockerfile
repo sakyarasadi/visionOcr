@@ -26,9 +26,8 @@ RUN pip install --no-cache-dir gunicorn
 # Copy application code
 COPY app.py .
 
-# Copy service account file if it exists
-# Note: For production, use GCP Workload Identity or Secret Manager instead
-COPY sublime-lens-479204-m6-03eb13e666f6.json .
+# Note: Service account credentials should be passed via environment variable
+# GOOGLE_APPLICATION_CREDENTIALS_JSON or use Workload Identity
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
